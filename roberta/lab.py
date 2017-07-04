@@ -40,6 +40,8 @@ def getHwAddr(ifname):
         info = ioctl(s.fileno(), 0x8927, struct.pack('256s', ifname[:15]))
     return ':'.join(['%02x' % char for char in info[18:24]])
 
+def getDeviceName():
+    return os.getenv('ROBERTA_DEVICE_NAME')
 
 def generateToken():
     # note: we intentionally leave '01' and 'IO' out since they can be confused
@@ -91,6 +93,7 @@ class Service(dbus.service.Object):
             'macaddr': '00:00:00:00:00:00',
             'firmwarename': 'ev3dev',
             'menuversion': version.split('-')[0],
+            'devicename': getDeviceName(),
         }
         self.updateConfiguration()
 

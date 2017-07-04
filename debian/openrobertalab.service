@@ -6,6 +6,7 @@ Conflicts=getty@tty2.service
 After=systemd-user-sessions.service getty@tty2.service
 
 [Service]
+Environment=ROBERTA_DEVICE_NAME=device1
 ExecStartPre=/bin/chown robot: /dev/tty2
 ExecStart=/usr/bin/openrobertalab
 ExecStopPost=/bin/chvt 1
