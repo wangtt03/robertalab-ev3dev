@@ -96,6 +96,9 @@ class Service(dbus.service.Object):
             'devicename': getDeviceName(),
         }
         self.updateConfiguration()
+        self.pingThread = Pinger(self)
+        self.pingThread.daemon = True
+        self.pingThread.start()
 
     def updateConfiguration(self):
         # or /etc/os-release
@@ -458,3 +461,18 @@ class Connector(threading.Thread):
             # don't play if we we just canceled a registration
             if self.registered:
                 self.service.hal.playFile(3)
+
+class Pinger(threading.Thread):
+    def __init__(self, service):
+        threading.Thread.__init__(self)
+        self.service = service
+        self.unable = True
+
+    def run(self):
+        while self.unable:
+            time.sleep(3)
+            response = os.system('ping -c 1 10.172.90.30')
+            if response == 0:
+                self.unable = False
+                self.service.connect('http://10.172.90.30:1999')
+                break
