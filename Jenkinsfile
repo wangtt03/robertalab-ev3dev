@@ -22,15 +22,16 @@ podTemplate(label: 'robertalab-service-pod', containers: [
                     sh("mkdir -p ${output}")
                     def image_name="ev3dev/ev3dev-jessie-ev3-generic"
                     def container_name="robertalab-service"
+                    def path = pwd()
                     sh("docker run \
-                        --volume \"$build_dir:/build\" \
-                        --volume \"$output_dir:/output\" \
+                        --volume \"${path}:/build\" \
+                        --volume \"${path}/${output}:/output\" \
                         --workdir /build \
                         --name ${container_name} \
                         --tty \
                         --detach \
                         ${image_name} tail")
-                    sh("docker exec --tty $container_name /bin/bash -c \"sudo apt-get update && \
+                    sh("docker exec --tty ${container_name} /bin/bash -c \"sudo apt-get update && \
                         sudo apt-get install -y devscripts build-essential lintian && \
                         sudo apt-get install -y python3-all dh-systemd python3-httpretty && \
                         cd /build/robertalab-ev3dev && \
