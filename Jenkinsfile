@@ -22,7 +22,6 @@ podTemplate(label: 'robertalab-service-pod', containers: [
                     sh("mkdir -p ${output}")
                     def image_name="ev3dev/ev3dev-jessie-ev3-generic"
                     def container_name="robertalab-service"
-                    sh("docker rm --force ${container_name} >/dev/null 2>&1 || true")
                     sh("docker run \
                         --volume \"$build_dir:/build\" \
                         --volume \"$output_dir:/output\" \
