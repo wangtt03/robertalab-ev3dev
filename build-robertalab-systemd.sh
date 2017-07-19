@@ -37,3 +37,4 @@ docker exec --tty $container_name /bin/bash -c "sudo apt-get update && \
     cd /build/robertalab-ev3dev && \
     debuild -us -uc && \
     cp ../*.deb /output/"
+
