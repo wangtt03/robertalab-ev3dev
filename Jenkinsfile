@@ -20,7 +20,7 @@ podTemplate(label: 'robertalab-service-pod', containers: [
                     * docker build on the command line */
                     sh("echo creating output dir: ${output}")
                     sh("pwd")
-                    sh("./build-robertalab-systemd.sh ${output}")
+                    sh("$(pwd)/build-robertalab-systemd.sh ${output}")
                 }
 
                 stage('Test image') {
