@@ -2,8 +2,8 @@ podTemplate(label: 'robertalab-service-pod', containers: [
     containerTemplate(name: 'docker', image: 'docker:17.06.0-dind', privileged: true, ttyEnabled: true),
     containerTemplate(name: 'azcopy', image: 'glueckkanja/ci-deploy-linux-azcopy:1.4.1', ttyEnabled: true),
   ]) {
-    import java.text.SimpleDateFormat
     node('robertalab-service-pod') {
+        import java.text.SimpleDateFormat
         def dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss")
         def date = new Date()
         def output = dateFormat.format(date)
