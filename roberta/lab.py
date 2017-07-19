@@ -1,6 +1,4 @@
 import ctypes
-import dbus
-import dbus.service
 from fcntl import ioctl
 import json
 import logging
@@ -16,13 +14,14 @@ import urllib.error
 import urllib.parse
 import sys
 # ignore failure to make this testable outside of the target platform
-try:
-    from ev3dev import auto as ev3dev
-    from .ev3 import Hal
-except:
-    from .test import Hal
+
 from .__version__ import version
 
+SERVER_ADDRESS = '10.172.90.30'
+
+LOG_PATH = '/var/log/robot/roberta.log'
+
+logging.basicConfig(filename = LOG_PATH, level = logging.DEBUG)
 logger = logging.getLogger('roberta.lab')
 
 # configuration
@@ -54,13 +53,13 @@ def generateToken():
 
 def getBatteryVoltage():
     try:
-        return "{0:.3f}".format(ev3dev.PowerSupply().measured_volts)
+        return '0.0'  # "{0:.3f}".format(ev3dev.PowerSupply().measured_volts)
     except:
         return '0.0'
 
 
-class Service(dbus.service.Object):
-    """OpenRobertab-Lab dbus service
+class Service(Object):
+    """OpenRobertab-Lab service
 
     The status state machines is a follows:
 
@@ -77,28 +76,21 @@ class Service(dbus.service.Object):
 
     """
 
-    def __init__(self, path):
+    def __init__(self):
         logger.info('python path: %s\n', (':'.join(sys.path)))
         # passing None for path is only for testing
-        if path:
-            # needs /etc/dbus-1/system.d/openroberta.conf
-            bus_name = dbus.service.BusName('org.openroberta.lab', bus=dbus.SystemBus())
-            dbus.service.Object.__init__(self, bus_name, path)
-            logger.debug('object registered')
-            self.status('disconnected')
-        self.hal = Hal(None, None)
-        self.hal.clearDisplay()
+
         self.thread = None
         self.params = {
             'macaddr': '00:00:00:00:00:00',
-            'firmwarename': 'ev3dev',
+            'firmwarename': 'brickpi',
             'menuversion': version.split('-')[0],
             'devicename': getDeviceName(),
         }
         self.updateConfiguration()
-        self.pingThread = Pinger(self)
-        self.pingThread.daemon = True
-        self.pingThread.start()
+        self.pinger = Pinger(self)
+        self.pinger.daemon = True
+        self.pinger.start()
 
     def updateConfiguration(self):
         # or /etc/os-release
@@ -118,7 +110,6 @@ class Service(dbus.service.Object):
         if not TOKEN_PER_SESSION:
             self.params['token'] = generateToken()
 
-    @dbus.service.method('org.openroberta.lab', in_signature='s', out_signature='s')
     def connect(self, address):
         logger.debug('connect(%s)', address)
         if self.thread:
@@ -138,7 +129,6 @@ class Service(dbus.service.Object):
         self.status('connected')
         return self.thread.params['token']
 
-    @dbus.service.method('org.openroberta.lab')
     def disconnect(self):
         logger.debug('disconnect()')
         self.thread.running = False
@@ -150,29 +140,8 @@ class Service(dbus.service.Object):
         # self.status('disconnected')
         self.thread = None
 
-    @dbus.service.signal('org.openroberta.lab', signature='s')
     def status(self, status):
         logger.info('status changed: %s', status)
-
-
-class GfxMode(object):
-
-    def __init__(self):
-        self.tty_name = os.ttyname(sys.stdin.fileno())
-
-    def __enter__(self):
-        logger.info('running on tty: %s', self.tty_name)
-        with open(self.tty_name, 'r') as tty:
-            # KDSETMODE = 0x4B3A, GRAPHICS = 0x01
-            ioctl(tty, 0x4B3A, 0x01)
-
-    def __exit__(self, type, value, traceback):
-        with open(self.tty_name, 'w') as tty:
-            # KDSETMODE = 0x4B3A, TEXT = 0x00
-            ioctl(tty, 0x4B3A, 0x00)
-            # send Ctrl-L to tty to clear
-            tty.write('\033c')
-
 
 class AbortHandler(threading.Thread):
     """ Key press handler to abort running programms.
@@ -187,26 +156,8 @@ class AbortHandler(threading.Thread):
 
     def run(self):
         self.long_press = 0
-        hal = self.service.hal
         while self.running:
-            if hal.isKeyPressed('back'):
-                logger.debug('back: %d', self.long_press)
-                # if pressed for one sec, hard exit
-                if self.long_press > 10:
-                    logger.info('--- hard abort ---')
-                    _thread.interrupt_main()  # throws KeyboardInterrupt
-                    self.running = False
-                    # something is eating the KeyboardInterrupt, this is a bit
-                    # brute force, but works
-                    os._exit(1)
-                else:
-                    self.long_press += 1
-            elif hal.isKeyPressed('enter') and hal.isKeyPressed('down'):
-                logger.debug('--- soft-abort ---')
-                self.running = False
-                self.ctype_async_raise(SystemExit)
-            else:
-                self.long_press = 0
+            # handle the event which quit the program running now
             time.sleep(0.1)
 
     def __enter__(self):
@@ -297,6 +248,7 @@ class Connector(threading.Thread):
                     '__name__': '__main__',
                     'result': 0,
                 }
+                # os.system('python ' + filename + ' &')
                 exec(compiled_code, scope)
                 result = scope['result']
             logger.info('execution finished: result = %d', result)
@@ -371,7 +323,6 @@ class Connector(threading.Thread):
                 if cmd == 'repeat':
                     if not self.registered:
                         self.service.status('registered')
-                        self.service.hal.playFile(2)
                     self.registered = True
                     self.params['nepoexitvalue'] = 0
                 elif cmd == 'abort':
@@ -399,14 +350,9 @@ class Connector(threading.Thread):
                     abort_handler.daemon = True
                     # This will make brickman switch vt
                     self.service.status('executing')
-                    with GfxMode():
-                        self.service.hal.clearDisplay()
-                        self.params['nepoexitvalue'] = self._exec_code(filename, code, abort_handler)
+                    self.params['nepoexitvalue'] = self._exec_code(filename, code, abort_handler)
                         # if the user did wait for a key press, wait for the key for be released
                         # before handing control back (to e.g. brickman)
-                        while self.service.hal.isKeyPressed('any'):
-                            time.sleep(0.1)
-                        self.service.hal.resetState()
                     self.service.status('registered')
                 elif cmd == 'update':
                     # FIXME:
@@ -459,20 +405,20 @@ class Connector(threading.Thread):
         if self.service:
             self.service.status('disconnected')
             # don't play if we we just canceled a registration
-            if self.registered:
-                self.service.hal.playFile(3)
 
 class Pinger(threading.Thread):
     def __init__(self, service):
         threading.Thread.__init__(self)
         self.service = service
-        self.unable = True
+        self.connected = False
 
     def run(self):
-        while self.unable:
+        while True:
+            response = os.system('ping -c 1 ' + SERVER_ADDRESS)
+            if response == 0：
+                if not connected:
+                    self.service.connect('http://' + SERVER_ADDRESS + ':1999')
+                    self.connected = True
+            else:
+                self.connected = False
             time.sleep(3)
-            response = os.system('ping -c 1 10.172.90.30')
-            if response == 0:
-                self.unable = False
-                self.service.connect('http://10.172.90.30:1999')
-                break
