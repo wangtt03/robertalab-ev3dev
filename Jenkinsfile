@@ -28,7 +28,7 @@ podTemplate(label: 'robertalab-service-pod', containers: [
                             --volume \"${path}/${output}:/output\" \
                             --workdir /build \
                             --name ${container_name} \
-                            ${image_name} 
+                            ${image_name} \
                             /bin/bash -c \"sudo apt-get update && \
                             sudo apt-get install -y devscripts build-essential lintian && \
                             sudo apt-get install -y python3-all dh-systemd python3-httpretty && \
