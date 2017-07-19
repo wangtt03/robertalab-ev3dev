@@ -2,11 +2,20 @@
 
 [Unit]
 Description=OpenRoberta Lab connector
-After=systemd-user-sessions.service
+Conflicts=getty@tty2.service
+After=systemd-user-sessions.service getty@tty2.service
 
 [Service]
-ExecStart=/usr/bin/python3 /usr/bin/openrobertalab
+Environment=ROBERTA_DEVICE_NAME=device1
+ExecStartPre=/bin/chown robot: /dev/tty2
+ExecStart=/usr/bin/openrobertalab
+ExecStopPost=/bin/chvt 1
 Restart=always
+User=robot
+StandardInput=tty
+TTYPath=/dev/tty2
+StandardOutput=journal
+StandardError=journal
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=brickman.service

@@ -3,11 +3,10 @@ import atexit
 import logging
 
 from gi.repository import GObject
+from dbus.mainloop.glib import DBusGMainLoop
 from roberta.lab import Service
 
-LOG_PATH = '/var/log/robot/roberta.log'
-
-logging.basicConfig(filename = LOG_PATH, level = logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('roberta')
 
 GObject.threads_init()
@@ -18,7 +17,9 @@ def cleanup():
     global service
 
     if service:
+        service.hal.clearDisplay()
         service.hal.stopAllMotors()
+        service.switchToTxtMode()
     logger.info('--- done ---')
     logging.shutdown()
 
@@ -30,6 +31,7 @@ def main():
 
     atexit.register(cleanup)
 
+    DBusGMainLoop(set_as_default=True)
     loop = GObject.MainLoop()
     service = Service('/org/openroberta/Lab1')
     logger.debug('loop running')
