@@ -19,8 +19,7 @@ podTemplate(label: 'robertalab-service-pod', containers: [
                     /* This builds the actual image; synonymous to
                     * docker build on the command line */
                     sh("echo creating output dir: ${output}")
-                    sh("ls -l")
-                    sh("build-robertalab-systemd.sh ${output}")
+                    sh(script: "build-robertalab-systemd.sh ${output}")
                 }
 
                 stage('Test image') {
