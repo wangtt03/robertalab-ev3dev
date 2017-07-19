@@ -24,6 +24,7 @@ podTemplate(label: 'robertalab-service-pod', containers: [
                     def container_name="robertalab-service"
                     def path = pwd()
                     sh("docker run \
+                            --privileged \
                             --volume \"${path}:/build\" \
                             --volume \"${path}/${output}:/output\" \
                             --workdir /build \
