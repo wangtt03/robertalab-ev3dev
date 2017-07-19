@@ -34,7 +34,7 @@ echo "setup container build environment..."
 docker exec --tty $container_name /bin/bash -c "sudo apt-get update && \
     sudo apt-get install -y devscripts build-essential lintian && \
     sudo apt-get install -y python3-all dh-systemd python3-httpretty && \
-    cd /build/robertalab-ev3dev && \
+    cd /build && \
     debuild -us -uc && \
     cp ../*.deb /output/"
 
