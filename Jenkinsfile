@@ -29,6 +29,6 @@ node('vmagent') {
             --source ${output} \
             --destination https://csdistg.blob.core.windows.net/robertalab-service/${output} \
             --dest-key vv2ZKUmod9oqdKBI7oWnMcPcd5HP0S6VIva8U9QQL/s6SLG1i55la6dKV7qLeMiX6FyxIQFTldGeyOeDCE7JsQ== \
-            --include "*.deb"")
+            --include \"*.deb\"")
     }
 }
