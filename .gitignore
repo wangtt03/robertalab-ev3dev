@@ -8,3 +8,11 @@ dist
 MANIFEST
 roberta/__version__.py
 *.egg-info
+.pybuild
+build
+*.debhelper
+debian/openrobertalab
+debian/tmp
+debian/files
+debian/openrobertalab.debhelper.log
+debian/openrobertalab.substvars
