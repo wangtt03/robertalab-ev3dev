@@ -37,6 +37,7 @@ node('vmagent') {
     } catch (error) {
         succ = false
         err = "error: ${error}"
+        throw error
     } finally {
         notifyStatus(succ, err)
     }
